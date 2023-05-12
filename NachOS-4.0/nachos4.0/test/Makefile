@@ -112,7 +112,7 @@ ifeq ($(hosttype),unknown)
 PROGRAMS = unknownhost
 else
 # change this if you create a new test program!
-PROGRAMS = add halt matmult sort segments createfile copy cat echoclient filetransfer concatenate delete ping pong scheduler
+PROGRAMS = ping pong scheduler
 endif
 
 all: $(PROGRAMS)
@@ -192,13 +192,6 @@ concatenate.o: concatenate.c
 concatenate: concatenate.o start.o
 	$(LD) $(LDFLAGS) start.o concatenate.o -o concatenate.coff
 	$(COFF2NOFF) concatenate.coff concatenate
-
-scheduler.o: scheduler.c
-	$(CC) $(CFLAGS) -c scheduler.c
-scheduler: scheduler.o start.o
-	$(LD) $(LDFLAGS) start.o scheduler.o -o scheduler.coff
-	../bin/coff2noff scheduler.coff scheduler
-
 ping.o: ping.c
 	$(CC) $(CFLAGS) -c ping.c
 ping: ping.o start.o
@@ -210,6 +203,12 @@ pong.o: pong.c
 pong: pong.o start.o
 	$(LD) $(LDFLAGS) start.o pong.o -o pong.coff
 	../bin/coff2noff pong.coff pong
+
+scheduler.o: scheduler.c
+	$(CC) $(CFLAGS) -c scheduler.c
+scheduler: scheduler.o start.o
+	$(LD) $(LDFLAGS) start.o scheduler.o -o scheduler.coff
+	../bin/coff2noff scheduler.coff scheduler
 
 clean:
 	$(RM) -f *.o *.ii
