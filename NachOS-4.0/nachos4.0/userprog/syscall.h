@@ -58,6 +58,14 @@
 #define SC_Send 101
 #define SC_Receive 102
 
+#define SC_Exec 120
+#define SC_Join 121
+#define SC_Exit 122
+#define SC_CreateSemaphore 123
+#define SC_Wait 124
+#define SC_Signal 125
+#define SC_ExecV 126
+
 #ifndef IN_ASM
 
 
@@ -87,28 +95,9 @@ int Add(int op1, int op2);
 /* This user program is done (status = 0 means exited normally). */
 void Exit(int status);	
 
-/* A unique identifier for an executing user program (address space) */
-typedef int SpaceId;	
 
 /* A unique identifier for a thread within a task */
 typedef int ThreadId;
-
-/* Run the specified executable, with no args */
-/* This can be implemented as a call to ExecV.
- */ 
-SpaceId Exec(char* exec_name);
-
-/* Run the executable, stored in the Nachos file "argv[0]", with
- * parameters stored in argv[1..argc-1] and return the 
- * address space identifier
- */
-SpaceId ExecV(int argc, char* argv[]);
- 
-/* Only return once the user program "id" has finished.  
- * Return the exit status.
- */
-int Join(SpaceId id); 	
- 
 
 /* File system operations: Create, Remove, Open, Read, Write, Close
  * These functions are patterned after UNIX -- files represent
@@ -219,6 +208,23 @@ int Send(int socketid, char *buffer, int len);
 
 int Receive(int socketid, char *buffer, int len);
 //int Write(char *buffer, int size, OpenFileId id);
+
+/* A unique identifier for an executing user program (address space) */
+typedef int SpaceId;	
+
+SpaceID Exec(char* name);
+
+int Join(SpaceID id);
+
+void Exit(int exitCode);
+
+int CreateSemaphore(char* name, int semval);
+
+int Wait(char* name);
+
+int Signal(char* name);
+
+SpaceId ExecV(int argc, char* argv[]);
 
 #endif /* IN_ASM */
 
