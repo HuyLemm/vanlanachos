@@ -875,42 +875,6 @@ void ExceptionHandler(ExceptionType which)
 		//     int id = pTab->ExecUpdate(name);
 		//     return id;
 		// }
-		case SC_Exec:
-        {
-            int virtualAddr = kernel->machine->ReadRegister(4); // Doc tham so dia chi buffer
-            char *name;
-            name = User2System(virtualAddr, 128+ 1);   // Lay ten file 
-            
-            if (name == NULL)
-			    {
-			        DEBUG('a', "Name can not be NULL");
-			        printf("Name can not be NULL");
-			        kernel->machine->WriteRegister(2, -1);
-			        return;
-			    }
-			    // Mo mot file moi
-			    OpenFile *oFile = kernel->fileSystem->Open(name);
-		    if (oFile == NULL)
-			    {
-			        printf("Can't open this file.\n");
-			        kernel->machine->WriteRegister(2, -1);
-			        return;
-			    }
-		    delete oFile;
-		    //semaphore
-		    int id = kernel->pTab->ExecUpdate(name);
-		    kernel->machine->WriteRegister(2, id);
-
-            
-            if (name != NULL)   // Neu ten file khac null thi giai phong bo nho
-                delete[] name;
-
-            IncreasePC();
-            return;
-
-            ASSERTNOTREACHED();
-            break;
-        }
 		case SC_Receive:
 		{
 			int sockID;
@@ -953,6 +917,180 @@ void ExceptionHandler(ExceptionType which)
 				System2User(virtAddr, len, buf);
 				kernel->machine->WriteRegister(2, result);
 			}
+		}
+			case SC_Exec:
+		{
+			// Input: vi tri int
+			// Output: Fail return -1, Success: return id cua thread dang chay
+			// SpaceId Exec(char *name);
+			int virtAddr;
+			virtAddr = kernel->machine->ReadRegister(4);	// doc dia chi ten chuong trinh tu thanh ghi r4
+			char* name;
+			name = User2System(virtAddr, MaxFileLength + 1); // Lay ten chuong trinh, nap vao kernel
+	
+			if(name == NULL)
+			{
+				DEBUG('a', "\n Not enough memory in System");
+				printf("\n Not enough memory in System");
+				kernel->machine->WriteRegister(2, -1);
+				//IncreasePC();
+				return;
+			}
+			OpenFile *oFile = kernel->fileSystem->Open(name);
+			if (oFile == NULL)
+			{
+				printf("\nExec:: Can't open this file.");
+				kernel->machine->WriteRegister(2,-1);
+				IncreasePC();
+				return;
+			}
+
+			delete oFile;
+
+			// Return child process id
+			int id = pTab->ExecUpdate(name); 
+			kernel->machine->WriteRegister(2,id);
+
+			delete[] name;	
+			IncreasePC();
+			return;
+		}
+		case SC_Join:
+		{       
+			// int Join(SpaceId id)
+			// Input: id dia chi cua thread
+			// Output: 
+			int id = kernel->machine->ReadRegister(4);
+			
+			int res = pTab->JoinUpdate(id);
+			
+			kernel->machine->WriteRegister(2, res);
+			IncreasePC();
+			return;
+		}
+		case SC_Exit:
+		{
+			//void Exit(int status);
+			// Input: status code
+			int exitStatus = kernel->machine->ReadRegister(4);
+
+			if(exitStatus != 0)
+			{
+				IncreasePC();
+				return;
+				
+			}			
+			
+			int res = pTab->ExitUpdate(exitStatus);
+			//kernel->machine->WriteRegister(2, res);
+
+			currentThread->FreeSpace();
+			currentThread->Finish();
+			IncreasePC();
+			return; 
+				
+		}
+		case SC_CreateSemaphore:
+		{
+			// int CreateSemaphore(char* name, int semval).
+			int virtAddr = kernel->machine->ReadRegister(4);
+			int semval = kernel->machine->ReadRegister(5);
+
+			char *name = User2System(virtAddr, MaxFileLength + 1);
+			if(name == NULL)
+			{
+				DEBUG('a', "\n Not enough memory in System");
+				printf("\n Not enough memory in System");
+				kernel->machine->WriteRegister(2, -1);
+				delete[] name;
+				IncreasePC();
+				return;
+			}
+			
+			int res = semTab->Create(name, semval);
+
+			if(res == -1)
+			{
+				DEBUG('a', "\n Khong the khoi tao semaphore");
+				printf("\n Khong the khoi tao semaphore");
+				kernel->machine->WriteRegister(2, -1);
+				delete[] name;
+				IncreasePC();
+				return;				
+			}
+			
+			delete[] name;
+			kernel->machine->WriteRegister(2, res);
+			IncreasePC();
+			return;
+		}
+
+		case SC_Wait:			
+		{
+			// int Wait(char* name)
+			int virtAddr = kernel->machine->ReadRegister(4);
+
+			char *name = User2System(virtAddr, MaxFileLength + 1);
+			if(name == NULL)
+			{
+				DEBUG('a', "\n Not enough memory in System");
+				printf("\n Not enough memory in System");
+				kernel->machine->WriteRegister(2, -1);
+				delete[] name;
+				IncreasePC();
+				return;
+			}
+			
+			int res = semTab->Wait(name);
+
+			if(res == -1)
+			{
+				DEBUG('a', "\n Khong ton tai ten semaphore nay!");
+				printf("\n Khong ton tai ten semaphore nay!");
+				kernel->machine->WriteRegister(2, -1);
+				delete[] name;
+				IncreasePC();
+				return;				
+			}
+			
+			delete[] name;
+			kernel->machine->WriteRegister(2, res);
+			IncreasePC();
+			return;
+		}
+		case SC_Signal:		
+		{
+			// int Signal(char* name)
+			int virtAddr = kernel->machine->ReadRegister(4);
+
+			char *name = User2System(virtAddr, MaxFileLength + 1);
+			if(name == NULL)
+			{
+				DEBUG('a', "\n Not enough memory in System");
+				printf("\n Not enough memory in System");
+				kernel->machine->WriteRegister(2, -1);
+				delete[] name;
+				IncreasePC();
+				return;
+			}
+			
+			int res = semTab->Signal(name);
+
+			if(res == -1)
+			{
+				DEBUG('a', "\n Khong ton tai ten semaphore nay!");
+				printf("\n Khong ton tai ten semaphore nay!");
+				kernel->machine->WriteRegister(2, -1);
+				delete[] name;
+				IncreasePC();
+				return;				
+			}
+			
+			delete[] name;
+			kernel->machine->WriteRegister(2, res);
+			IncreasePC();
+			return;
+		}
 
 			IncreasePC();
 
